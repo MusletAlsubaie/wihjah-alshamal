@@ -44,11 +44,11 @@ git init
 git add .
 git commit -m "Add Wihjah Al-Shamal concept prototype"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/wihjah-alshamal.git
+git remote add origin https://github.com/MusletAlsubaie/wihjah-alshamal.git
 git push -u origin main
 ```
 
-استبدل `YOUR_USERNAME` باسم حسابك.
+رابط المستودع: https://github.com/MusletAlsubaie/wihjah-alshamal
 
 ## نشر رابط حي اختياري
 
