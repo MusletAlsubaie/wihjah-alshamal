@@ -6,6 +6,19 @@
   <title>وِجهة الشمال | نموذج أولي</title>
   <meta name="description" content="نموذج تصوري لرحلة مستفيد أكثر سهولة في منطقة الحدود الشمالية" />
   <link rel="icon" href="public/branding/favicon-32.png" />
+  <script>
+    // يضمن عمل المسارات على GitHub Pages (رابط المشروع بدون / في النهاية)
+    (function () {
+      var path = location.pathname;
+      if (
+        location.protocol !== "file:" &&
+        !path.endsWith("/") &&
+        !path.endsWith(".html")
+      ) {
+        location.replace(path + "/" + location.search + location.hash);
+      }
+    })();
+  </script>
   <style>
     :root {
       --bg: #f9f7f2;

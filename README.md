@@ -50,9 +50,25 @@ git push -u origin main
 
 رابط المستودع: https://github.com/MusletAlsubaie/wihjah-alshamal
 
-## نشر رابط حي اختياري
+## رابط العرض الحي (GitHub Pages)
 
-بعد رفع المشروع إلى GitHub يمكنك نشره عبر Vercel ليصبح لديك رابط تطبيق حي بالإضافة إلى رابط GitHub.
+بعد تفعيل Pages ونشر الـ Workflow، افتح:
+
+```text
+https://musletalsubaie.github.io/wihjah-alshamal/
+```
+
+هذا الرابط يشغّل ملف `index.html` الثابت (مناسب للمشاركة مع الإدارة).
+
+لتفعيل GitHub Pages يدويًا إن لزم:
+
+1. المستودع → **Settings** → **Pages**
+2. Source: **GitHub Actions**
+3. انتظر اكتمال Workflow باسم `Deploy GitHub Pages`
+
+## نشر رابط حي اختياري (Vercel)
+
+لنسخة Next.js الكاملة يمكنك أيضًا النشر عبر Vercel من نفس مستودع GitHub.
 
 ## الهوية البصرية (Branding)
 
