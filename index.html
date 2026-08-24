@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>وِجهة الشمال | نموذج أولي</title>
+  <meta name="description" content="نموذج تصوري لرحلة مستفيد أكثر سهولة في منطقة الحدود الشمالية" />
+  <link rel="icon" href="public/branding/favicon-32.png" />
+  <style>
+    :root {
+      --bg: #f9f7f2;
+      --card: rgba(255,255,255,.92);
+      --text: #0f2a27;
+      --muted: #5c6f6c;
+      --line: #dce6e3;
+      --primary: #0a4a45;
+      --primary-dark: #062f2c;
+      --gold: #c5a059;
+      --gold-dark: #9a7a3d;
+      --soft: #e8f2f0;
+      --shadow: 0 12px 32px rgba(6,47,44,.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image: url("public/branding/pattern-bg.png");
+      background-repeat: repeat;
+      background-size: 180px auto;
+      background-attachment: fixed;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .shell { min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      min-height: 72px;
+      padding: 10px max(16px, calc((100vw - 1100px) / 2));
+      background: rgba(249,247,242,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; color: inherit; }
+    .brand img { width: 44px; height: 44px; object-fit: contain; }
+    .brand strong { display: block; font-size: 16px; }
+    .brand small { color: var(--gold-dark); font-size: 11px; }
+    .nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav button {
+      border: 0; background: transparent; color: var(--muted);
+      padding: 10px 12px; border-radius: 10px; font-weight: 600;
+    }
+    .nav button:hover { background: var(--soft); color: var(--primary); }
+    .notice, .wrap {
+      width: calc(100% - 32px);
+      max-width: 1000px;
+      margin-inline: auto;
+    }
+    .notice {
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-inline-start: 3px solid var(--gold);
+      border-radius: 14px;
+      padding: 11px 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .wrap { margin: 28px auto 60px; }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(10,74,69,.1);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      display: inline-block;
+      background: var(--soft);
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .primary, .secondary {
+      border-radius: 12px;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid transparent;
+      font-weight: 700;
+    }
+    .primary { background: var(--primary); color: #fff; }
+    .primary:hover { background: var(--primary-dark); }
+    .primary:disabled { opacity: .45; cursor: not-allowed; }
+    .secondary { background: #fff; color: var(--primary); border-color: #b9d5c8; }
+    .full { width: 100%; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+
+    /* Splash */
+    .splash {
+      min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .splash-frame {
+      position: relative; width: min(100%, 520px); height: 100dvh; max-height: 100dvh;
+    }
+    .splash-frame img {
+      width: 100%; height: 100%; object-fit: contain; object-position: center;
+    }
+    .splash-actions {
+      position: absolute; left: 50%; top: 63%; transform: translateX(-50%);
+    }
+    .splash-start {
+      min-width: 110px; min-height: 34px; padding: 0 18px;
+      border: 0; border-radius: 999px; font-weight: 800; font-size: 13px;
+      background: linear-gradient(180deg, #d4b36e, var(--gold), var(--gold-dark));
+      color: var(--primary-dark);
+      box-shadow: 0 8px 20px rgba(6,47,44,.18);
+    }
+
+    .home-grid {
+      display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px;
+    }
+    .hero {
+      position: relative; min-height: 360px; overflow: hidden; color: #fff;
+      border-radius: 20px;
+    }
+    .hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(105deg, rgba(6,47,44,.88), rgba(10,74,69,.55));
+    }
+    .hero-content { position: relative; z-index: 1; padding: 36px; }
+    .hero h1 { font-size: clamp(28px, 4vw, 48px); margin: 14px 0; }
+    .hero h1 span { color: var(--gold); }
+    .hero p { color: rgba(255,255,255,.9); line-height: 1.8; max-width: 560px; }
+    .hero .primary { background: var(--gold); color: var(--primary-dark); }
+    .hero .secondary { background: transparent; color: #fff; border-color: rgba(255,255,255,.55); }
+    .value-card { padding: 24px; }
+    .value-card img { width: 140px; height: auto; display: block; margin: 0 auto 12px; }
+    .steps { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 12px; }
+    .steps li { display: flex; gap: 10px; align-items: center; color: #3d524e; }
+    .steps span {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #f5edd9; color: var(--gold-dark);
+      display: grid; place-items: center; font-weight: 800;
+    }
+    .quick-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .quick {
+      border: 1px solid rgba(10,74,69,.1); background: var(--card);
+      border-radius: 18px; padding: 18px; text-align: right;
+    }
+    .quick b { display: block; margin-bottom: 4px; color: var(--primary); }
+    .quick span { color: var(--muted); font-size: 13px; }
+
+    .page-heading h1 { margin: 10px 0 6px; color: var(--primary-dark); }
+    .page-heading p { margin: 0; color: var(--muted); }
+    .form-card { padding: 24px; display: grid; gap: 16px; max-width: 720px; }
+    label { display: grid; gap: 8px; }
+    label > span { font-weight: 700; }
+    textarea, input, select {
+      width: 100%; border: 1px solid #c9d9d5; border-radius: 12px;
+      padding: 12px; background: #fff; color: var(--text);
+    }
+    .map-box, .upload-box {
+      border: 1px dashed #b7cbc1; border-radius: 14px; padding: 14px;
+      background: #fff; color: var(--muted); font-size: 13px;
+    }
+    .result-card, .tracking-card, .table-card { padding: 24px; max-width: 760px; }
+    .result-card { text-align: center; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: right; margin-top: 18px; }
+    .result-grid > div { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; }
+    .result-grid span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .chip {
+      display: inline-flex; border-radius: 999px; padding: 6px 10px;
+      background: var(--soft); color: var(--primary); font-size: 12px; font-weight: 700;
+    }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+    .stat { padding: 18px; }
+    .stat strong { display: block; font-size: 28px; color: var(--primary); }
+    .stat span { color: var(--muted); font-size: 13px; }
+    .request-row {
+      border-top: 1px solid var(--line); padding: 16px 0;
+      display: grid; grid-template-columns: 1.2fr .9fr; gap: 14px;
+    }
+    .staff-redirect { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+    .info-box { margin-top: 12px; background: var(--soft); border-radius: 12px; padding: 14px; color: #365748; line-height: 1.7; }
+    .error { color: #9b2c2c; margin: 0; font-size: 13px; }
+
+    footer {
+      margin-top: auto; background: var(--primary-dark);
+      padding: 16px max(16px, calc((100vw - 1100px) / 2));
+      border-top: 1px solid var(--line);
+    }
+    .footer-inner { direction: ltr; display: flex; justify-content: flex-start; }
+    .footer-enbthon img {
+      width: 80px; height: 80px; object-fit: cover; border-radius: 12px; display: block;
+    }
+
+    @media (max-width: 850px) {
+      .nav { display: none; }
+      .home-grid, .quick-grid, .result-grid, .stats, .request-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Splash -->
+  <section id="screen-splash" class="splash">
+    <div class="splash-frame">
+      <img src="public/branding/social-story.png" alt="وِجهة الشمال" />
+      <div class="splash-actions">
+        <button class="splash-start" type="button" onclick="go('home')">ابدأ</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="app" class="shell hidden">
+    <header class="topbar">
+      <button class="brand" type="button" onclick="go('home')">
+        <img src="public/branding/favicon-32.png" alt="" />
+        <span>
+          <strong>وِجهة الشمال</strong>
+          <small>Wihjah Al-Shamal</small>
+        </span>
+      </button>
+      <nav class="nav" aria-label="التنقل">
+        <button type="button" onclick="go('home')">الرئيسية</button>
+        <button type="button" onclick="openRequest('service')">تقديم طلب</button>
+        <button type="button" onclick="go('track')">متابعة الطلب</button>
+        <button type="button" onclick="go('dashboard')">لوحة الموظف</button>
+      </nav>
+    </header>
+
+    <section class="notice">
+      نموذج أولي داعم لفكرة الإنباثون — بيانات تجريبية فقط ولا يتصل بأي نظام حكومي فعلي.
+    </section>
+
+    <main class="wrap">
+      <!-- Home -->
+      <section id="screen-home" class="home-grid">
+        <div class="hero card">
+          <img src="public/branding/hero-bg.png" alt="" />
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            <span class="eyebrow" style="color:#f5edd9;background:rgba(255,255,255,.12)">رحلة مستفيد أكثر سهولة</span>
+            <h1>كل خدماتك تبدأ من <span>وِجهة</span></h1>
+            <p>صف احتياجك بلغة بسيطة، ودع النظام يقترح التصنيف والمسار المناسب.</p>
+            <div class="actions">
+              <button class="primary" type="button" onclick="openRequest('service')">ابدأ رحلتك</button>
+              <button class="secondary" type="button" onclick="go('track')">متابعة طلب</button>
+            </div>
+          </div>
+        </div>
+        <div class="card value-card">
+          <img src="public/branding/logo-primary.png" alt="وِجهة الشمال" />
+          <h2>الفكرة في 4 خطوات</h2>
+          <ol class="steps">
+            <li><span>1</span> المستفيد يصف احتياجه</li>
+            <li><span>2</span> النظام يقترح التصنيف</li>
+            <li><span>3</span> الطلب يوجّه للمسار المناسب</li>
+            <li><span>4</span> المستفيد يتابع الحالة</li>
+          </ol>
+        </div>
+        <div class="quick-grid">
+          <button class="quick" type="button" onclick="openRequest('service')"><b>طلب خدمة</b><span>ابدأ رحلة جديدة</span></button>
+          <button class="quick" type="button" onclick="openRequest('report')"><b>بلاغ</b><span>صف المشكلة مباشرة</span></button>
+          <button class="quick" type="button" onclick="go('track')"><b>استفسار</b><span>تابع حالة طلبك</span></button>
+          <button class="quick" type="button" onclick="go('dashboard')"><b>لوحة الموظف</b><span>دخول ثم إعادة التوجيه</span></button>
+        </div>
+      </section>
+
+      <!-- New request -->
+      <section id="screen-new" class="hidden">
+        <div class="page-heading">
+          <span class="eyebrow">الخطوة 1 من 3</span>
+          <h1 id="new-title">تقديم طلب خدمة</h1>
+          <p>اشرح احتياجك فقط — لا تحتاج معرفة اسم الجهة.</p>
+        </div>
+        <div class="card form-card">
+          <label>
+            <span id="new-label">صف ما تحتاجه</span>
+            <textarea id="description" rows="5">يوجد تجمع مياه بجانب مدرسة في عرعر</textarea>
+          </label>
+          <label>
+            <span>الموقع</span>
+            <input id="location" value="عرعر - حي نموذجي" />
+          </label>
+          <div class="map-box">تحديد الموقع: استخدم الموقع أعلاه كنموذج. في نسخة Next.js تتوفر خرائط جوجل تفاعلية.</div>
+          <div class="upload-box">إضافة صورة اختياري — كاميرا أو ملفات (متاح بالكامل في تطبيق Next.js).</div>
+          <button class="primary full" type="button" onclick="analyze()">تحليل الطلب</button>
+        </div>
+      </section>
+
+      <!-- Result -->
+      <section id="screen-result" class="hidden">
+        <div class="page-heading">
+          <span class="eyebrow">الخطوة 2 من 3</span>
+          <h1>تم تحليل طلبك</h1>
+          <p>نتيجة تجريبية قابلة للمراجعة قبل الإرسال.</p>
+        </div>
+        <div class="card result-card">
+          <h2>التصنيف المقترح</h2>
+          <div class="result-grid">
+            <div><span>التصنيف</span><b id="r-cat">—</b></div>
+            <div><span>التصنيف الفرعي</span><b id="r-sub">—</b></div>
+            <div><span>الأولوية</span><b id="r-pri">—</b></div>
+            <div><span>الجهة المقترحة</span><b id="r-route">—</b></div>
+          </div>
+          <div class="actions" style="justify-content:center">
+            <button class="secondary" type="button" onclick="go('new')">تعديل</button>
+            <button class="primary" type="button" onclick="submitRequest()">إرسال الطلب</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Track -->
+      <section id="screen-track" class="hidden">
+        <div class="page-heading">
+          <span class="eyebrow">متابعة موحدة</span>
+          <h1>حالة الطلب</h1>
+          <p id="track-msg">عرض تجريبي لطلب سابق.</p>
+        </div>
+        <div class="card tracking-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <div><span style="color:var(--muted);font-size:12px">رقم الطلب</span><br /><strong id="track-id" style="font-size:22px;direction:ltr;display:inline-block">NB-2026-0142</strong></div>
+            <span class="chip" id="track-status">بانتظار التوجيه</span>
+          </div>
+          <div class="info-box">يصل الطلب إلى لوحة الموظف ليؤكد إعادة التوجيه للجهة المقترحة (مثل وزارة المياه).</div>
+          <button class="secondary full" type="button" onclick="go('dashboard')">فتح لوحة الموظف</button>
+        </div>
+      </section>
+
+      <!-- Staff login -->
+      <section id="screen-login" class="hidden">
+        <div class="page-heading">
+          <span class="eyebrow">دخول الموظف</span>
+          <h1>لوحة الموظف</h1>
+          <p>أدخل بيانات الدخول التجريبية.</p>
+        </div>
+        <form class="card form-card" onsubmit="return staffLogin(event)">
+          <label><span>اسم المستخدم</span><input id="staff-user" placeholder="موظف" autocomplete="username" /></label>
+          <label><span>كلمة المرور</span><input id="staff-pass" type="password" placeholder="1234" autocomplete="current-password" /></label>
+          <p class="error hidden" id="login-error">اسم المستخدم أو كلمة المرور غير صحيحة</p>
+          <button class="primary full" type="submit">الدخول</button>
+          <div class="info-box">للتجربة: المستخدم <b>موظف</b> وكلمة المرور <b>1234</b></div>
+        </form>
+      </section>
+
+      <!-- Dashboard -->
+      <section id="screen-dashboard" class="hidden">
+        <div class="page-heading" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <span class="eyebrow">لوحة الموظف</span>
+            <h1>نظرة تشغيلية موحدة</h1>
+            <p>مرحبًا <span id="staff-name">موظف</span> — راجع الطلبات وأكّد إعادة التوجيه.</p>
+          </div>
+          <button class="secondary" type="button" onclick="staffLogout()">تسجيل الخروج</button>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="card table-card" style="max-width:none">
+          <h2>الطلبات الأخيرة</h2>
+          <div id="request-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-inner">
+        <a class="footer-enbthon" href="https://enb.gov.sa/enbthon" target="_blank" rel="noopener noreferrer" aria-label="ENBTHON 2026">
+          <img src="public/branding/ENBTHON.jpeg" alt="ENBTHON 2026" />
+        </a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const SECTORS = [
+      "قطاع الكهرباء",
+      "قطاع الاتصالات",
+      "وزارة المياه",
+      "الأمانة",
+      "وزارة النقل",
+      "كافة الدوائر الحكومية",
+    ];
+
+    let screen = "splash";
+    let requestKind = "service";
+    let staffLoggedIn = false;
+    let lastClassification = null;
+    let requestId = "NB-2026-0142";
+
+    let staffRequests = [
+      {
+        id: "NB-2026-0142",
+        text: "تجمع مياه بجانب مدرسة في عرعر",
+        kind: "report",
+        category: "خدمات عامة",
+        priority: "متوسطة",
+        status: "بانتظار التوجيه",
+        suggestedSector: "وزارة المياه",
+        assignedSector: null,
+      },
+      {
+        id: "NB-2026-0143",
+        text: "إنارة لا تعمل في شارع عام",
+        kind: "report",
+        category: "خدمات عامة",
+        priority: "متوسطة",
+        status: "بانتظار التوجيه",
+        suggestedSector: "قطاع الكهرباء",
+        assignedSector: null,
+      },
+      {
+        id: "NB-2026-0144",
+        text: "حاوية ممتلئة قرب حديقة",
+        kind: "service",
+        category: "خدمات بلدية",
+        priority: "منخفضة",
+        status: "تحت المعالجة",
+        suggestedSector: "الأمانة",
+        assignedSector: "الأمانة",
+      },
+    ];
+
+    function suggestSector(text, kind) {
+      const v = text.toLowerCase();
+      if (/ماء|مياه|تسرب|تصريف|مجاري/.test(v)) return "وزارة المياه";
+      if (/كهرب|إنارة|عمود|لمبة|انقطاع/.test(v)) return "قطاع الكهرباء";
+      if (/اتصال|انترنت|شبكة|جوال|اتصالات/.test(v)) return "قطاع الاتصالات";
+      if (/حفرة|طريق|شارع|رصيف/.test(v)) return "وزارة النقل";
+      if (/نفايات|حاوية|نظافة|حديقة|بلدي/.test(v)) return "الأمانة";
+      return kind === "report" ? "الأمانة" : "كافة الدوائر الحكومية";
+    }
+
+    function classify(text, kind) {
+      const v = text.toLowerCase();
+      const route = suggestSector(text, kind);
+      if (/ماء|مياه|تسرب/.test(v)) return { category: "خدمات عامة", subcategory: "مياه وتصريف", priority: "متوسطة", route, confidence: 92 };
+      if (/إنارة|عمود|لمبة|كهرب/.test(v)) return { category: "خدمات عامة", subcategory: "إنارة / كهرباء", priority: "متوسطة", route, confidence: 90 };
+      if (/حفرة|طريق|شارع/.test(v)) return { category: "طرق", subcategory: "صيانة الطرق", priority: "عالية", route, confidence: 89 };
+      if (/نفايات|حاوية|نظافة/.test(v)) return { category: "خدمات بلدية", subcategory: "النظافة", priority: "متوسطة", route, confidence: 91 };
+      return { category: kind === "report" ? "بلاغ عام" : "خدمة مستفيد", subcategory: "طلب عام", priority: "منخفضة", route, confidence: 73 };
+    }
+
+    function show(id) {
+      ["splash","home","new","result","track","login","dashboard"].forEach((name) => {
+        const el = document.getElementById("screen-" + name);
+        if (el) el.classList.toggle("hidden", name !== id);
+      });
+      document.getElementById("screen-splash").classList.toggle("hidden", id !== "splash");
+      document.getElementById("app").classList.toggle("hidden", id === "splash");
+    }
+
+    function go(name) {
+      screen = name;
+      if (name === "dashboard") {
+        show(staffLoggedIn ? "dashboard" : "login");
+        if (staffLoggedIn) renderDashboard();
+        return;
+      }
+      show(name);
+    }
+
+    function openRequest(kind) {
+      requestKind = kind;
+      document.getElementById("new-title").textContent = kind === "report" ? "تقديم بلاغ" : "تقديم طلب خدمة";
+      document.getElementById("new-label").textContent = kind === "report" ? "صف البلاغ" : "صف ما تحتاجه";
+      go("new");
+    }
+
+    function analyze() {
+      const text = document.getElementById("description").value.trim();
+      if (text.length < 8) return;
+      lastClassification = classify(text, requestKind);
+      document.getElementById("r-cat").textContent = lastClassification.category;
+      document.getElementById("r-sub").textContent = lastClassification.subcategory;
+      document.getElementById("r-pri").textContent = lastClassification.priority;
+      document.getElementById("r-route").textContent = lastClassification.route;
+      go("result");
+    }
+
+    function submitRequest() {
+      const text = document.getElementById("description").value.trim();
+      const result = lastClassification || classify(text, requestKind);
+      const id = "NB-2026-" + String(1400 + staffRequests.length + 1).padStart(4, "0");
+      requestId = id;
+      staffRequests.unshift({
+        id,
+        text,
+        kind: requestKind,
+        category: result.category,
+        priority: result.priority,
+        status: "بانتظار التوجيه",
+        suggestedSector: result.route,
+        assignedSector: null,
+      });
+      document.getElementById("track-id").textContent = id;
+      document.getElementById("track-status").textContent = "بانتظار توجيه الموظف";
+      document.getElementById("track-msg").textContent = "تم إنشاء الطلب ووصوله لطابور الموظف.";
+      go("track");
+    }
+
+    function staffLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById("staff-user").value.trim();
+      const p = document.getElementById("staff-pass").value.trim();
+      const ok = (u === "موظف" || u === "staff" || u === "admin") && (p === "1234" || p === "staff");
+      document.getElementById("login-error").classList.toggle("hidden", ok);
+      if (!ok) return false;
+      staffLoggedIn = true;
+      document.getElementById("staff-name").textContent = u;
+      go("dashboard");
+      return false;
+    }
+
+    function staffLogout() {
+      staffLoggedIn = false;
+      go("dashboard");
+    }
+
+    function renderDashboard() {
+      const waiting = staffRequests.filter((r) => !r.assignedSector).length;
+      const routed = staffRequests.filter((r) => r.assignedSector).length;
+      document.getElementById("stats").innerHTML = [
+        [waiting, "بانتظار التوجيه"],
+        [routed, "تم التوجيه"],
+        [staffRequests.length, "إجمالي المعروض"],
+        [SECTORS.length, "قطاعات متاحة"],
+      ].map(([v, l]) => `<div class="card stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
+
+      document.getElementById("request-list").innerHTML = staffRequests.map((r) => {
+        const choice = r.assignedSector || r.suggestedSector;
+        const done = Boolean(r.assignedSector);
+        const options = SECTORS.map((s) => `<option value="${s}" ${s === choice ? "selected" : ""}>${s}</option>`).join("");
+        return `
+          <article class="request-row">
+            <div>
+              <strong style="direction:ltr;display:inline-block">${r.id}</strong>
+              <span class="chip">${r.status}</span>
+              <p>${r.text}</p>
+              <div style="color:var(--muted);font-size:13px;margin-top:8px">
+                ${r.kind === "report" ? "بلاغ" : "طلب خدمة"} · ${r.category} · ${r.priority}<br/>
+                المقترح: <b style="color:var(--primary)">${r.suggestedSector}</b>
+              </div>
+            </div>
+            <div class="staff-redirect">
+              <label><span>إعادة التوجيه إلى</span>
+                <select id="sel-${r.id}" ${done ? "disabled" : ""}>${options}</select>
+              </label>
+              <button class="primary" type="button" ${done ? "disabled" : ""} onclick="redirect('${r.id}')">
+                ${done ? "تم التوجيه" : "تأكيد إعادة التوجيه"}
+              </button>
+            </div>
+          </article>`;
+      }).join("");
+    }
+
+    function redirect(id) {
+      const sel = document.getElementById("sel-" + id);
+      const sector = sel.value;
+      staffRequests = staffRequests.map((r) =>
+        r.id === id ? { ...r, assignedSector: sector, status: "تم التوجيه إلى " + sector } : r
+      );
+      if (id === requestId) {
+        document.getElementById("track-status").textContent = "تم التوجيه إلى " + sector;
+      }
+      renderDashboard();
+    }
+
+    show("splash");
+  </script>
+</body>
+</html>
