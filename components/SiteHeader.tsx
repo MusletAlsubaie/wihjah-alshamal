@@ -3,7 +3,13 @@
 import { useEffect, useId, useState } from "react";
 import BrandLogo from "./BrandLogo";
 
-export type AppScreen = "home" | "new" | "result" | "track" | "dashboard";
+export type AppScreen =
+  | "home"
+  | "project"
+  | "new"
+  | "result"
+  | "track"
+  | "dashboard";
 
 type SiteHeaderProps = {
   onNavigate: (screen: AppScreen) => void;
@@ -11,9 +17,9 @@ type SiteHeaderProps = {
 
 const NAV_ITEMS: { screen: AppScreen; label: string }[] = [
   { screen: "home", label: "الرئيسية" },
-  { screen: "new", label: "تقديم طلب" },
-  { screen: "track", label: "متابعة الطلب" },
-  { screen: "dashboard", label: "لوحة الموظف" },
+  { screen: "project", label: "المشروع" },
+  { screen: "track", label: "متابعة" },
+  { screen: "dashboard", label: "الموظف" },
 ];
 
 export default function SiteHeader({ onNavigate }: SiteHeaderProps) {

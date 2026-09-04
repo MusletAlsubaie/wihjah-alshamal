@@ -9,18 +9,25 @@ export const CITY_SECTORS = [
 
 export type CitySector = (typeof CITY_SECTORS)[number];
 
+export type TicketKind = "report" | "suggestion";
+
 export type StaffRequest = {
   id: string;
   text: string;
-  kind: "service" | "report";
+  title: string;
+  kind: TicketKind;
   category: string;
   priority: "منخفضة" | "متوسطة" | "عالية";
   status: string;
   suggestedSector: CitySector;
   assignedSector: CitySector | null;
+  followUp?: boolean;
 };
 
-export function suggestSector(text: string, kind: "service" | "report" = "service"): CitySector {
+export function suggestSector(
+  text: string,
+  kind: TicketKind = "report"
+): CitySector {
   const value = text.trim().toLowerCase();
 
   if (
@@ -78,6 +85,7 @@ export function suggestSector(text: string, kind: "service" | "report" = "servic
 export const DEMO_STAFF_REQUESTS: StaffRequest[] = [
   {
     id: "NB-2026-0142",
+    title: "تجمع مياه",
     text: "تجمع مياه بجانب مدرسة في عرعر",
     kind: "report",
     category: "خدمات عامة",
@@ -88,6 +96,7 @@ export const DEMO_STAFF_REQUESTS: StaffRequest[] = [
   },
   {
     id: "NB-2026-0143",
+    title: "إنارة معطلة",
     text: "إنارة لا تعمل في شارع عام",
     kind: "report",
     category: "خدمات عامة",
@@ -98,12 +107,14 @@ export const DEMO_STAFF_REQUESTS: StaffRequest[] = [
   },
   {
     id: "NB-2026-0144",
-    text: "حاوية ممتلئة قرب حديقة",
-    kind: "service",
-    category: "خدمات بلدية",
+    title: "تحسين الحاويات",
+    text: "اقتراح زيادة حاويات النظافة قرب الحديقة",
+    kind: "suggestion",
+    category: "بنية تحتية",
     priority: "منخفضة",
     status: "تحت المعالجة",
     suggestedSector: "الأمانة",
     assignedSector: "الأمانة",
+    followUp: true,
   },
 ];

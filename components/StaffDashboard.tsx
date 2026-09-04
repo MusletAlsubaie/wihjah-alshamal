@@ -165,7 +165,7 @@ export default function StaffDashboard({
                   </div>
                   <p>{r.text}</p>
                   <div className="request-meta staff-request-tags">
-                    <span>{r.kind === "report" ? "بلاغ" : "طلب خدمة"}</span>
+                    <span>{r.kind === "report" ? "إبلاغ" : "اقتراح"}</span>
                     <span>{r.category}</span>
                     <span>{r.priority}</span>
                   </div>

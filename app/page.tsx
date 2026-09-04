@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import BrandLogo from "../components/BrandLogo";
-import HeroSection from "../components/HeroSection";
+import BottomNav from "../components/BottomNav";
+import HomeLanding from "../components/HomeLanding";
 import ImageAttachField from "../components/ImageAttachField";
 import LocationMapPicker, { type MapLocation } from "../components/LocationMapPicker";
+import ProjectHub from "../components/ProjectHub";
 import SiteHeader, { type AppScreen } from "../components/SiteHeader";
 import SplashLanding from "../components/SplashLanding";
 import StaffDashboard, { StaffLoginForm } from "../components/StaffDashboard";
@@ -14,90 +15,34 @@ import {
   suggestSector,
   type CitySector,
   type StaffRequest,
+  type TicketKind,
 } from "../lib/sectors";
 
 type Screen = AppScreen | "splash";
-type RequestKind = "service" | "report";
+type Priority = "منخفضة" | "متوسطة" | "عالية";
 
-type Classification = {
-  category: string;
-  subcategory: string;
-  priority: "منخفضة" | "متوسطة" | "عالية";
-  route: string;
-  confidence: number;
-};
+const SUGGESTION_CATEGORIES = [
+  "خدمات",
+  "بنية تحتية",
+  "تجربة مستفيد",
+  "أخرى",
+] as const;
 
 function StatusChip({ status }: { status: string }) {
   return <span className="chip">{status}</span>;
 }
 
-function classify(text: string, kind: RequestKind): Classification {
-  const value = text.trim().toLowerCase();
-  const sector = suggestSector(text, kind);
-
-  if (value.includes("ماء") || value.includes("مياه") || value.includes("تسرب")) {
-    return {
-      category: "خدمات عامة",
-      subcategory: "مياه وتصريف",
-      priority: "متوسطة",
-      route: sector,
-      confidence: 92,
-    };
-  }
-
-  if (value.includes("إنارة") || value.includes("عمود") || value.includes("لمبة") || value.includes("كهرب")) {
-    return {
-      category: "خدمات عامة",
-      subcategory: "إنارة / كهرباء",
-      priority: "متوسطة",
-      route: sector,
-      confidence: 90,
-    };
-  }
-
-  if (value.includes("حفرة") || value.includes("طريق") || value.includes("شارع")) {
-    return {
-      category: "طرق",
-      subcategory: "صيانة الطرق",
-      priority: "عالية",
-      route: sector,
-      confidence: 89,
-    };
-  }
-
-  if (value.includes("نفايات") || value.includes("حاوية") || value.includes("نظافة")) {
-    return {
-      category: "خدمات بلدية",
-      subcategory: "النظافة",
-      priority: "متوسطة",
-      route: sector,
-      confidence: 91,
-    };
-  }
-
-  if (value.includes("اتصال") || value.includes("انترنت") || value.includes("شبكة")) {
-    return {
-      category: "اتصالات",
-      subcategory: "خدمات الاتصالات",
-      priority: "متوسطة",
-      route: sector,
-      confidence: 88,
-    };
-  }
-
-  return {
-    category: kind === "report" ? "بلاغ عام" : "خدمة مستفيد",
-    subcategory: "طلب عام",
-    priority: "منخفضة",
-    route: sector,
-    confidence: 73,
-  };
-}
-
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("splash");
-  const [requestKind, setRequestKind] = useState<RequestKind>("service");
-  const [description, setDescription] = useState("يوجد تجمع مياه بجانب مدرسة في عرعر");
+  const [requestKind, setRequestKind] = useState<TicketKind>("report");
+
+  const [title, setTitle] = useState("تجمع مياه بجانب مدرسة");
+  const [description, setDescription] = useState(
+    "يوجد تجمع مياه بجانب مدرسة في عرعر ويحتاج معالجة عاجلة"
+  );
+  const [priority, setPriority] = useState<Priority>("متوسطة");
+  const [category, setCategory] = useState<(typeof SUGGESTION_CATEGORIES)[number]>("خدمات");
+  const [followUp, setFollowUp] = useState(true);
   const [mapLocation, setMapLocation] = useState<MapLocation>({
     label: "عرعر - حي نموذجي",
     lat: 30.9756,
@@ -105,54 +50,75 @@ export default function Home() {
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
-  const [classification, setClassification] = useState<Classification | null>(null);
+
   const [submitted, setSubmitted] = useState(false);
   const [requestId, setRequestId] = useState("NB-2026-0142");
-  const [staffRequests, setStaffRequests] = useState<StaffRequest[]>(DEMO_STAFF_REQUESTS);
+  const [ticketComment, setTicketComment] = useState("");
+  const [comments, setComments] = useState<string[]>([]);
+
+  const [staffRequests, setStaffRequests] =
+    useState<StaffRequest[]>(DEMO_STAFF_REQUESTS);
   const [staffLoggedIn, setStaffLoggedIn] = useState(false);
   const [staffName, setStaffName] = useState("");
+
+  const navScreen: AppScreen =
+    screen === "splash"
+      ? "home"
+      : screen === "new" || screen === "result"
+        ? "project"
+        : screen;
 
   const trackStatus = useMemo(() => {
     const item = staffRequests.find((r) => r.id === requestId);
     if (item?.assignedSector) return `تم التوجيه إلى ${item.assignedSector}`;
     if (submitted) return "بانتظار توجيه الموظف";
-    return item?.status || "تم التوجيه";
+    return item?.status || "بانتظار التوجيه";
   }, [staffRequests, requestId, submitted]);
 
-  function openRequest(kind: RequestKind) {
+  const canSubmit =
+    title.trim().length >= 3 && description.trim().length >= 8;
+
+  function openForm(kind: TicketKind) {
     setRequestKind(kind);
+    if (kind === "report") {
+      setTitle("تجمع مياه بجانب مدرسة");
+      setDescription("يوجد تجمع مياه بجانب مدرسة في عرعر ويحتاج معالجة عاجلة");
+      setPriority("متوسطة");
+    } else {
+      setTitle("تحسين تجربة تقديم البلاغات");
+      setDescription("أقترح إضافة تنبيهات فورية للمستفيد عند كل تحديث لحالة الطلب");
+      setCategory("تجربة مستفيد");
+      setFollowUp(true);
+    }
     setScreen("new");
   }
 
-  function openDashboard() {
-    setScreen("dashboard");
-  }
+  function submitTicket() {
+    if (!canSubmit) return;
 
-  function runClassification() {
-    setClassification(classify(description, requestKind));
-    setScreen("result");
-  }
-
-  function submitRequest() {
     const id = `NB-2026-${String(1400 + staffRequests.length + 1).padStart(4, "0")}`;
-    const result = classification || classify(description, requestKind);
-    const suggested = suggestSector(description, requestKind);
+    const suggested = suggestSector(`${title} ${description}`, requestKind);
 
     const incoming: StaffRequest = {
       id,
+      title: title.trim(),
       text: description.trim(),
       kind: requestKind,
-      category: result.category,
-      priority: result.priority,
+      category:
+        requestKind === "suggestion" ? category : `إبلاغ — ${priority}`,
+      priority: requestKind === "report" ? priority : "منخفضة",
       status: "بانتظار التوجيه",
       suggestedSector: suggested,
       assignedSector: null,
+      followUp: requestKind === "suggestion" ? followUp : false,
     };
 
     setStaffRequests((prev) => [incoming, ...prev]);
     setRequestId(id);
     setSubmitted(true);
-    setScreen("track");
+    setComments([]);
+    setTicketComment("");
+    setScreen("result");
   }
 
   function handleStaffRedirect(id: string, sector: CitySector) {
@@ -169,9 +135,19 @@ export default function Home() {
     );
   }
 
-  function handleStaffLogout() {
-    setStaffLoggedIn(false);
-    setStaffName("");
+  function addComment() {
+    const value = ticketComment.trim();
+    if (!value) return;
+    setComments((prev) => [...prev, value]);
+    setTicketComment("");
+  }
+
+  function navigate(next: AppScreen) {
+    if (next === "dashboard") {
+      setScreen("dashboard");
+      return;
+    }
+    setScreen(next);
   }
 
   if (screen === "splash") {
@@ -183,94 +159,108 @@ export default function Home() {
   }
 
   return (
-    <main className="app-shell">
-      <SiteHeader
-        onNavigate={(next) => {
-          if (next === "new") openRequest("service");
-          else if (next === "dashboard") openDashboard();
-          else setScreen(next);
-        }}
-      />
+    <main className="app-shell app-shell--nav">
+      <SiteHeader onNavigate={navigate} />
 
       <section className="notice">
-        نموذج أولي داعم لفكرة الإنباثون — يستخدم بيانات تجريبية فقط ولا يتصل بأي نظام
-        حكومي فعلي.
+        نموذج أولي وفق مواصفات التطبيق — بيانات تجريبية فقط ولا يتصل بأي نظام حكومي
+        فعلي. التفاصيل في <code>docs/SPEC.md</code>
       </section>
 
-      {screen === "home" && (
-        <section className="home-grid">
-          <HeroSection
-            onStart={() => openRequest("service")}
-            onTrack={() => setScreen("track")}
-          />
+      {screen === "home" && <HomeLanding onOpenProject={() => setScreen("project")} />}
 
-          <div className="card value-card">
-            <div className="value-brand">
-              <BrandLogo variant="primary" />
-            </div>
-            <h2>الفكرة في 4 خطوات</h2>
-            <ol className="steps">
-              <li>
-                <span>1</span> المستفيد يصف احتياجه
-              </li>
-              <li>
-                <span>2</span> النظام يقترح التصنيف
-              </li>
-              <li>
-                <span>3</span> الطلب يوجّه للمسار المناسب
-              </li>
-              <li>
-                <span>4</span> المستفيد يتابع الحالة
-              </li>
-            </ol>
-          </div>
-
-          <div className="quick-grid">
-            <button type="button" className="quick card" onClick={() => openRequest("service")}>
-              <b>طلب خدمة</b>
-              <span>ابدأ رحلة جديدة</span>
-            </button>
-            <button type="button" className="quick card" onClick={() => openRequest("report")}>
-              <b>بلاغ</b>
-              <span>صف المشكلة مباشرة</span>
-            </button>
-            <button type="button" className="quick card" onClick={() => setScreen("track")}>
-              <b>استفسار</b>
-              <span>تابع حالة طلبك</span>
-            </button>
-            <button type="button" className="quick card" onClick={openDashboard}>
-              <b>لوحة الموظف</b>
-              <span>دخول ثم إعادة التوجيه</span>
-            </button>
-          </div>
-        </section>
+      {screen === "project" && (
+        <ProjectHub
+          onReport={() => openForm("report")}
+          onSuggest={() => openForm("suggestion")}
+          onStaff={() => setScreen("dashboard")}
+          onTrack={() => setScreen("track")}
+        />
       )}
 
       {screen === "new" && (
         <section className="page-wrap">
           <div className="page-heading">
-            <span className="eyebrow">الخطوة 1 من 3</span>
-            <h1>{requestKind === "report" ? "تقديم بلاغ" : "تقديم طلب خدمة"}</h1>
+            <span className="eyebrow">
+              {requestKind === "report" ? "إبلاغ" : "اقتراح"}
+            </span>
+            <h1>
+              {requestKind === "report" ? "تقديم بلاغ جديد" : "تقديم اقتراح جديد"}
+            </h1>
             <p>
               {requestKind === "report"
-                ? "صف المشكلة وحدد موقعها وأرفق صورة إن أمكن."
-                : "اشرح احتياجك وحدد الموقع وأرفق صورة داعمة إن رغبت."}
+                ? "أدخل العنوان والوصف والأولوية والموقع إن وجد، ثم أرسل لاستلام رقم تذكرة."
+                : "أدخل عنوان الاقتراح وتفاصيله والفئة، ويمكنك تفعيل المتابعة والتعليق."}
             </p>
           </div>
 
           <div className="card form-card">
             <label>
-              <span>{requestKind === "report" ? "صف البلاغ" : "صف ما تحتاجه"}</span>
+              <span>العنوان</span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+                placeholder="عنوان مختصر"
+              />
+            </label>
+
+            <label>
+              <span>{requestKind === "report" ? "الوصف" : "التفاصيل"}</span>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={5}
-                placeholder="مثال: يوجد تجمع مياه بجانب مدرسة..."
+                maxLength={1000}
+                placeholder="اشرح التفاصيل بوضوح..."
               />
-              <small>{description.length}/500</small>
+              <small>{description.length}/1000</small>
             </label>
 
-            <LocationMapPicker value={mapLocation} onChange={setMapLocation} />
+            {requestKind === "report" ? (
+              <>
+                <label>
+                  <span>مستوى الأولوية</span>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value as Priority)}
+                  >
+                    <option value="منخفضة">منخفضة</option>
+                    <option value="متوسطة">متوسطة</option>
+                    <option value="عالية">عالية</option>
+                  </select>
+                </label>
+
+                <LocationMapPicker value={mapLocation} onChange={setMapLocation} />
+              </>
+            ) : (
+              <>
+                <label>
+                  <span>الفئة</span>
+                  <select
+                    value={category}
+                    onChange={(e) =>
+                      setCategory(e.target.value as (typeof SUGGESTION_CATEGORIES)[number])
+                    }
+                  >
+                    {SUGGESTION_CATEGORIES.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={followUp}
+                    onChange={(e) => setFollowUp(e.target.checked)}
+                  />
+                  <span>أرغب بمتابعة الاقتراح والتعليق داخل التطبيق</span>
+                </label>
+              </>
+            )}
 
             <ImageAttachField
               previewUrl={imagePreview}
@@ -284,57 +274,38 @@ export default function Home() {
             <button
               type="button"
               className="primary full"
-              onClick={runClassification}
-              disabled={description.trim().length < 8}
+              onClick={submitTicket}
+              disabled={!canSubmit}
             >
-              تحليل الطلب
+              إرسال واستلام رقم تذكرة
             </button>
           </div>
         </section>
       )}
 
-      {screen === "result" && classification && (
+      {screen === "result" && (
         <section className="page-wrap">
           <div className="page-heading">
-            <span className="eyebrow">الخطوة 2 من 3</span>
-            <h1>تم تحليل طلبك</h1>
-            <p>هذه نتيجة تجريبية قابلة للمراجعة قبل الإرسال.</p>
+            <span className="eyebrow">تم الاستلام</span>
+            <h1>تم إنشاء التذكرة بنجاح</h1>
+            <p>احتفظ برقم التذكرة لمتابعة الحالة لاحقًا.</p>
           </div>
 
           <div className="card result-card">
             <div className="success-icon">✓</div>
-            <h2>التصنيف المقترح</h2>
+            <h2>رقم التذكرة</h2>
+            <strong className="ticket-id">{requestId}</strong>
+            <p className="ticket-meta">
+              النوع: {requestKind === "report" ? "إبلاغ" : "اقتراح"} — الحالة: بانتظار
+              توجيه الموظف
+            </p>
 
-            <div className="result-grid">
-              <div>
-                <span>التصنيف</span>
-                <b>{classification.category}</b>
-              </div>
-              <div>
-                <span>التصنيف الفرعي</span>
-                <b>{classification.subcategory}</b>
-              </div>
-              <div>
-                <span>الأولوية</span>
-                <b>{classification.priority}</b>
-              </div>
-              <div>
-                <span>الجهة المقترحة</span>
-                <b>{classification.route}</b>
-              </div>
-            </div>
-
-            <div className="confidence">
-              <span>درجة ثقة النموذج التجريبي</span>
-              <strong>{classification.confidence}%</strong>
-            </div>
-
-            <div className="actions">
-              <button type="button" className="secondary" onClick={() => setScreen("new")}>
-                تعديل
+            <div className="actions" style={{ justifyContent: "center" }}>
+              <button type="button" className="secondary" onClick={() => setScreen("project")}>
+                العودة للمشروع
               </button>
-              <button type="button" className="primary" onClick={submitRequest}>
-                إرسال الطلب
+              <button type="button" className="primary" onClick={() => setScreen("track")}>
+                متابعة التذكرة
               </button>
             </div>
           </div>
@@ -345,18 +316,18 @@ export default function Home() {
         <section className="page-wrap">
           <div className="page-heading">
             <span className="eyebrow">متابعة موحدة</span>
-            <h1>حالة الطلب</h1>
+            <h1>حالة التذكرة</h1>
             <p>
               {submitted
-                ? "تم إنشاء الطلب ووصوله لطابور الموظف."
-                : "عرض تجريبي لطلب سابق."}
+                ? "تم إنشاء التذكرة ووصولها لطابور الموظف."
+                : "عرض تجريبي لتذكرة سابقة."}
             </p>
           </div>
 
           <div className="card tracking-card">
             <div className="request-summary">
               <div>
-                <span>رقم الطلب</span>
+                <span>رقم التذكرة</span>
                 <strong>{requestId}</strong>
               </div>
               <StatusChip status={trackStatus} />
@@ -365,7 +336,7 @@ export default function Home() {
             <div className="timeline">
               {[
                 ["تم الاستلام", true],
-                ["تم التصنيف", true],
+                ["تم التصنيف الأولي", true],
                 ["بانتظار الموظف", true],
                 [
                   "إعادة التوجيه للجهة",
@@ -388,12 +359,49 @@ export default function Home() {
               ))}
             </div>
 
+            {followUp ||
+            staffRequests.find((r) => r.id === requestId)?.followUp ||
+            requestKind === "suggestion" ? (
+              <div className="comments-box">
+                <h3>التعليقات والمتابعة</h3>
+                {comments.length === 0 ? (
+                  <p className="muted">لا توجد تعليقات بعد.</p>
+                ) : (
+                  <ul className="comment-list">
+                    {comments.map((c, i) => (
+                      <li key={`${c}-${i}`}>{c}</li>
+                    ))}
+                  </ul>
+                )}
+                <label>
+                  <span>أضف تعليقًا</span>
+                  <textarea
+                    rows={3}
+                    value={ticketComment}
+                    onChange={(e) => setTicketComment(e.target.value)}
+                    placeholder="اكتب ملاحظتك للمتابعة..."
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="secondary full"
+                  onClick={addComment}
+                  disabled={!ticketComment.trim()}
+                >
+                  إرسال التعليق
+                </button>
+              </div>
+            ) : null}
+
             <div className="info-box">
-              يصل الطلب إلى لوحة الموظف ليراجع الجهة المقترحة (مثل قطاع المياه عند بلاغ
-              تسرب) ثم يؤكد إعادة التوجيه.
+              يصل الطلب إلى لوحة الموظف ليراجع الجهة المقترحة ثم يؤكد إعادة التوجيه.
             </div>
 
-            <button type="button" className="secondary full" onClick={openDashboard}>
+            <button
+              type="button"
+              className="secondary full"
+              onClick={() => setScreen("dashboard")}
+            >
               فتح لوحة الموظف
             </button>
           </div>
@@ -406,7 +414,10 @@ export default function Home() {
             requests={staffRequests}
             staffName={staffName}
             onRedirect={handleStaffRedirect}
-            onLogout={handleStaffLogout}
+            onLogout={() => {
+              setStaffLoggedIn(false);
+              setStaffName("");
+            }}
           />
         ) : (
           <StaffLoginForm
@@ -436,6 +447,8 @@ export default function Home() {
           </a>
         </div>
       </footer>
+
+      <BottomNav active={navScreen} onNavigate={navigate} />
     </main>
   );
 }
