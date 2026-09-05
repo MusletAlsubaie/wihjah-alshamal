@@ -6,19 +6,19 @@ import BottomNav from "../components/BottomNav";
 import HomeLanding from "../components/HomeLanding";
 import ImageAttachField from "../components/ImageAttachField";
 import LocationMapPicker, { type MapLocation } from "../components/LocationMapPicker";
-import ProjectHub from "../components/ProjectHub";
+import ProjectIdea from "../components/ProjectIdea";
 import SiteHeader, { type AppScreen } from "../components/SiteHeader";
 import SplashLanding from "../components/SplashLanding";
 import StaffDashboard, { StaffLoginForm } from "../components/StaffDashboard";
 import {
   DEMO_STAFF_REQUESTS,
-  suggestSector,
+  suggestSectors,
   type CitySector,
   type StaffRequest,
   type TicketKind,
 } from "../lib/sectors";
 
-type Screen = AppScreen | "splash";
+type Screen = AppScreen | "splash" | "idea";
 type Priority = "منخفضة" | "متوسطة" | "عالية";
 
 const SUGGESTION_CATEGORIES = [
@@ -62,15 +62,17 @@ export default function Home() {
   const [staffName, setStaffName] = useState("");
 
   const navScreen: AppScreen =
-    screen === "splash"
+    screen === "splash" || screen === "home"
       ? "home"
-      : screen === "new" || screen === "result"
+      : screen === "new" || screen === "result" || screen === "idea"
         ? "project"
         : screen;
 
   const trackStatus = useMemo(() => {
     const item = staffRequests.find((r) => r.id === requestId);
-    if (item?.assignedSector) return `تم التوجيه إلى ${item.assignedSector}`;
+    if (item?.assignedSectors?.length) {
+      return `تم التوجيه إلى ${item.assignedSectors.join("، ")}`;
+    }
     if (submitted) return "بانتظار توجيه الموظف";
     return item?.status || "بانتظار التوجيه";
   }, [staffRequests, requestId, submitted]);
@@ -97,7 +99,7 @@ export default function Home() {
     if (!canSubmit) return;
 
     const id = `NB-2026-${String(1400 + staffRequests.length + 1).padStart(4, "0")}`;
-    const suggested = suggestSector(`${title} ${description}`, requestKind);
+    const suggested = suggestSectors(`${title} ${description}`, requestKind);
 
     const incoming: StaffRequest = {
       id,
@@ -108,8 +110,8 @@ export default function Home() {
         requestKind === "suggestion" ? category : `إبلاغ — ${priority}`,
       priority: requestKind === "report" ? priority : "منخفضة",
       status: "بانتظار التوجيه",
-      suggestedSector: suggested,
-      assignedSector: null,
+      suggestedSectors: suggested,
+      assignedSectors: [],
       followUp: requestKind === "suggestion" ? followUp : false,
     };
 
@@ -121,14 +123,14 @@ export default function Home() {
     setScreen("result");
   }
 
-  function handleStaffRedirect(id: string, sector: CitySector) {
+  function handleStaffRedirect(id: string, sectors: CitySector[]) {
     setStaffRequests((prev) =>
       prev.map((item) =>
         item.id === id
           ? {
               ...item,
-              assignedSector: sector,
-              status: `تم التوجيه إلى ${sector}`,
+              assignedSectors: sectors,
+              status: `تم التوجيه إلى ${sectors.join("، ")}`,
             }
           : item
       )
@@ -143,6 +145,10 @@ export default function Home() {
   }
 
   function navigate(next: AppScreen) {
+    if (next === "project") {
+      setScreen("home");
+      return;
+    }
     if (next === "dashboard") {
       setScreen("dashboard");
       return;
@@ -158,6 +164,20 @@ export default function Home() {
     );
   }
 
+  if (screen === "home") {
+    return (
+      <main className="app-shell app-shell--orbit">
+        <HomeLanding
+          onReport={() => openForm("report")}
+          onSuggest={() => openForm("suggestion")}
+          onTrack={() => setScreen("track")}
+          onIdea={() => setScreen("idea")}
+          onStaff={() => setScreen("dashboard")}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell app-shell--nav">
       <SiteHeader onNavigate={navigate} />
@@ -167,14 +187,10 @@ export default function Home() {
         فعلي. التفاصيل في <code>docs/SPEC.md</code>
       </section>
 
-      {screen === "home" && <HomeLanding onOpenProject={() => setScreen("project")} />}
-
-      {screen === "project" && (
-        <ProjectHub
-          onReport={() => openForm("report")}
-          onSuggest={() => openForm("suggestion")}
-          onStaff={() => setScreen("dashboard")}
-          onTrack={() => setScreen("track")}
+      {screen === "idea" && (
+        <ProjectIdea
+          onBack={() => setScreen("home")}
+          onStartReport={() => openForm("report")}
         />
       )}
 
@@ -340,7 +356,10 @@ export default function Home() {
                 ["بانتظار الموظف", true],
                 [
                   "إعادة التوجيه للجهة",
-                  Boolean(staffRequests.find((r) => r.id === requestId)?.assignedSector),
+                  Boolean(
+                    staffRequests.find((r) => r.id === requestId)?.assignedSectors
+                      ?.length
+                  ),
                 ],
                 ["مكتمل", false],
               ].map(([label, done], idx) => (

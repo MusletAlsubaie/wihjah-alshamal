@@ -375,7 +375,11 @@
         </div>
         <div class="stats" id="stats"></div>
         <div class="card table-card" style="max-width:none">
-          <h2>الطلبات الأخيرة</h2>
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+            <h2 style="margin:0;color:var(--primary-dark)" id="list-title">بانتظار التوجيه</h2>
+            <span id="list-count" style="color:var(--muted);font-size:13px"></span>
+          </div>
+          <div id="ops-tabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
           <div id="request-list"></div>
         </div>
       </section>
@@ -392,11 +396,21 @@
 
   <script>
     const SECTORS = [
+      "الدفاع المدني (المطافئ)",
+      "الهلال الأحمر (الإسعاف)",
+      "الشرطة",
+      "المرور",
       "قطاع الكهرباء",
       "قطاع الاتصالات",
       "وزارة المياه",
       "الأمانة",
       "وزارة النقل",
+      "وزارة الصحة",
+      "وزارة التعليم",
+      "الدفاع المدني — السلامة",
+      "البيئة والمياه والزراعة",
+      "الجوازات",
+      "الدفاع المدني والإنقاذ",
       "كافة الدوائر الحكومية",
     ];
 
@@ -404,9 +418,27 @@
     let requestKind = "service";
     let staffLoggedIn = false;
     let lastClassification = null;
-    let requestId = "NB-2026-0142";
+    let requestId = "NB-2026-0145";
+    let listFilter = "waiting";
+    const draftSectors = {};
 
     let staffRequests = [
+      {
+        id: "NB-2026-0145",
+        title: "حريق مركبة",
+        text: "حريق مركبة في قارعة الطريق بحي النموذج في عرعر",
+        kind: "report",
+        category: "طوارئ",
+        priority: "عالية",
+        status: "بانتظار التوجيه",
+        suggestedSectors: [
+          "الدفاع المدني (المطافئ)",
+          "الهلال الأحمر (الإسعاف)",
+          "الشرطة",
+          "المرور",
+        ],
+        assignedSectors: [],
+      },
       {
         id: "NB-2026-0142",
         text: "تجمع مياه بجانب مدرسة في عرعر",
@@ -414,8 +446,8 @@
         category: "خدمات عامة",
         priority: "متوسطة",
         status: "بانتظار التوجيه",
-        suggestedSector: "وزارة المياه",
-        assignedSector: null,
+        suggestedSectors: ["وزارة المياه", "الأمانة"],
+        assignedSectors: [],
       },
       {
         id: "NB-2026-0143",
@@ -424,8 +456,18 @@
         category: "خدمات عامة",
         priority: "متوسطة",
         status: "بانتظار التوجيه",
-        suggestedSector: "قطاع الكهرباء",
-        assignedSector: null,
+        suggestedSectors: ["قطاع الكهرباء", "الأمانة"],
+        assignedSectors: [],
+      },
+      {
+        id: "NB-2026-0146",
+        text: "اصطدام مركبتين على دوار الملك فهد مع إصابات",
+        kind: "report",
+        category: "طوارئ",
+        priority: "عالية",
+        status: "تم التوجيه إلى المرور، الهلال الأحمر (الإسعاف)، الشرطة",
+        suggestedSectors: ["المرور", "الهلال الأحمر (الإسعاف)", "الشرطة"],
+        assignedSectors: ["المرور", "الهلال الأحمر (الإسعاف)", "الشرطة"],
       },
       {
         id: "NB-2026-0144",
@@ -433,30 +475,106 @@
         kind: "service",
         category: "خدمات بلدية",
         priority: "منخفضة",
-        status: "تحت المعالجة",
-        suggestedSector: "الأمانة",
-        assignedSector: "الأمانة",
+        status: "تم التوجيه إلى الأمانة",
+        suggestedSectors: ["الأمانة"],
+        assignedSectors: ["الأمانة"],
+      },
+      {
+        id: "NB-2026-0141",
+        text: "انقطاع كهرباء في حي المساعدية",
+        kind: "report",
+        category: "خدمات عامة",
+        priority: "متوسطة",
+        status: "تم التوجيه إلى قطاع الكهرباء",
+        suggestedSectors: ["قطاع الكهرباء"],
+        assignedSectors: ["قطاع الكهرباء"],
       },
     ];
 
-    function suggestSector(text, kind) {
-      const v = text.toLowerCase();
-      if (/ماء|مياه|تسرب|تصريف|مجاري/.test(v)) return "وزارة المياه";
-      if (/كهرب|إنارة|عمود|لمبة|انقطاع/.test(v)) return "قطاع الكهرباء";
-      if (/اتصال|انترنت|شبكة|جوال|اتصالات/.test(v)) return "قطاع الاتصالات";
-      if (/حفرة|طريق|شارع|رصيف/.test(v)) return "وزارة النقل";
-      if (/نفايات|حاوية|نظافة|حديقة|بلدي/.test(v)) return "الأمانة";
-      return kind === "report" ? "الأمانة" : "كافة الدوائر الحكومية";
+    function suggestSectors(text, kind) {
+      const value = (text || "").toLowerCase();
+      const out = [];
+      function add() {
+        for (let i = 0; i < arguments.length; i++) {
+          if (out.indexOf(arguments[i]) === -1) out.push(arguments[i]);
+        }
+      }
+      const isFire = /حريق|حرائق|اشتعال|احترق|محترق|بالنار|على النار|(^|[^اإ])النار/.test(value);
+      const isVehicle = /مركبة|سيارة|شاحنة|حافلة/.test(value);
+      const isRoad = /طريق|شارع|قارعة|مسار|دوار/.test(value);
+
+      if (isFire && (isVehicle || isRoad)) {
+        add("الدفاع المدني (المطافئ)", "الهلال الأحمر (الإسعاف)", "الشرطة");
+        if (isRoad) add("المرور");
+        return out;
+      }
+      if (isFire) {
+        add("الدفاع المدني (المطافئ)", "الهلال الأحمر (الإسعاف)");
+        return out;
+      }
+      if (/حادث|اصطدام|دهس|انقلاب|تصادم/.test(value)) {
+        add("المرور", "الهلال الأحمر (الإسعاف)", "الشرطة");
+        if (isFire) add("الدفاع المدني (المطافئ)");
+        return out;
+      }
+      if (/إسعاف|إصابة|مصاب|إغماء/.test(value)) {
+        add("الهلال الأحمر (الإسعاف)", "وزارة الصحة");
+        return out;
+      }
+      if (/سرقة|مشاجرة|اعتداء|أمن/.test(value)) {
+        add("الشرطة");
+        return out;
+      }
+      if (/ماء|مياه|تسرب|تصريف|مجاري/.test(value)) {
+        add("وزارة المياه", "الأمانة");
+        return out;
+      }
+      if (/كهرب|إنارة|عمود|لمبة|انقطاع/.test(value)) {
+        add("قطاع الكهرباء");
+        if (isRoad) add("الأمانة");
+        return out;
+      }
+      if (/اتصال|انترنت|شبكة|جوال|اتصالات/.test(value)) {
+        add("قطاع الاتصالات");
+        return out;
+      }
+      if (/حفرة|رصيف/.test(value) || (isRoad && !isFire)) {
+        add("وزارة النقل", "الأمانة");
+        if (/ازدحام|إشارة/.test(value)) add("المرور");
+        return out;
+      }
+      if (/نفايات|حاوية|نظافة|حديقة|بلدي/.test(value)) {
+        add("الأمانة");
+        return out;
+      }
+      if (/مدرس|تعليم|طالب/.test(value)) {
+        add("وزارة التعليم");
+        return out;
+      }
+      if (/مستشف|عيادة|صحة/.test(value)) {
+        add("وزارة الصحة");
+        return out;
+      }
+      if (/بيئة|تلوث|زراعة/.test(value)) {
+        add("البيئة والمياه والزراعة", "الأمانة");
+        return out;
+      }
+      return kind === "report"
+        ? ["الأمانة", "كافة الدوائر الحكومية"]
+        : ["كافة الدوائر الحكومية", "الأمانة"];
     }
 
     function classify(text, kind) {
       const v = text.toLowerCase();
-      const route = suggestSector(text, kind);
-      if (/ماء|مياه|تسرب/.test(v)) return { category: "خدمات عامة", subcategory: "مياه وتصريف", priority: "متوسطة", route, confidence: 92 };
-      if (/إنارة|عمود|لمبة|كهرب/.test(v)) return { category: "خدمات عامة", subcategory: "إنارة / كهرباء", priority: "متوسطة", route, confidence: 90 };
-      if (/حفرة|طريق|شارع/.test(v)) return { category: "طرق", subcategory: "صيانة الطرق", priority: "عالية", route, confidence: 89 };
-      if (/نفايات|حاوية|نظافة/.test(v)) return { category: "خدمات بلدية", subcategory: "النظافة", priority: "متوسطة", route, confidence: 91 };
-      return { category: kind === "report" ? "بلاغ عام" : "خدمة مستفيد", subcategory: "طلب عام", priority: "منخفضة", route, confidence: 73 };
+      const routes = suggestSectors(text, kind);
+      const routeLabel = routes.join("، ");
+      if (/حريق|اشتعال/.test(v)) return { category: "طوارئ", subcategory: "حريق", priority: "عالية", routes, route: routeLabel, confidence: 95 };
+      if (/حادث|اصطدام/.test(v)) return { category: "طوارئ", subcategory: "حادث مروري", priority: "عالية", routes, route: routeLabel, confidence: 94 };
+      if (/ماء|مياه|تسرب/.test(v)) return { category: "خدمات عامة", subcategory: "مياه وتصريف", priority: "متوسطة", routes, route: routeLabel, confidence: 92 };
+      if (/إنارة|عمود|لمبة|كهرب/.test(v)) return { category: "خدمات عامة", subcategory: "إنارة / كهرباء", priority: "متوسطة", routes, route: routeLabel, confidence: 90 };
+      if (/حفرة|طريق|شارع/.test(v)) return { category: "طرق", subcategory: "صيانة الطرق", priority: "عالية", routes, route: routeLabel, confidence: 89 };
+      if (/نفايات|حاوية|نظافة/.test(v)) return { category: "خدمات بلدية", subcategory: "النظافة", priority: "متوسطة", routes, route: routeLabel, confidence: 91 };
+      return { category: kind === "report" ? "بلاغ عام" : "خدمة مستفيد", subcategory: "طلب عام", priority: "منخفضة", routes, route: routeLabel, confidence: 73 };
     }
 
     function show(id) {
@@ -508,8 +626,8 @@
         category: result.category,
         priority: result.priority,
         status: "بانتظار التوجيه",
-        suggestedSector: result.route,
-        assignedSector: null,
+        suggestedSectors: result.routes || suggestSectors(text, requestKind),
+        assignedSectors: [],
       });
       document.getElementById("track-id").textContent = id;
       document.getElementById("track-status").textContent = "بانتظار توجيه الموظف";
@@ -535,21 +653,172 @@
       go("dashboard");
     }
 
-    function renderDashboard() {
-      const waiting = staffRequests.filter((r) => !r.assignedSector).length;
-      const routed = staffRequests.filter((r) => r.assignedSector).length;
-      document.getElementById("stats").innerHTML = [
-        [waiting, "بانتظار التوجيه"],
-        [routed, "تم التوجيه"],
-        [staffRequests.length, "إجمالي المعروض"],
-        [SECTORS.length, "قطاعات متاحة"],
-      ].map(([v, l]) => `<div class="card stat"><strong>${v}</strong><span>${l}</span></div>`).join("");
+    function toggleDraftSector(id, sector) {
+      if (!draftSectors[id]) {
+        const req = staffRequests.find((r) => r.id === id);
+        draftSectors[id] = ((req && req.suggestedSectors) || []).slice();
+      }
+      const list = draftSectors[id];
+      const i = list.indexOf(sector);
+      if (i >= 0) list.splice(i, 1);
+      else list.push(sector);
+      renderDashboard();
+    }
 
-      document.getElementById("request-list").innerHTML = staffRequests.map((r) => {
-        const choice = r.assignedSector || r.suggestedSector;
-        const done = Boolean(r.assignedSector);
-        const options = SECTORS.map((s) => `<option value="${s}" ${s === choice ? "selected" : ""}>${s}</option>`).join("");
-        return `
+    function setListFilter(filter) {
+      listFilter = filter;
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      const waitingList = staffRequests.filter((r) => !r.assignedSectors.length);
+      const routedList = staffRequests.filter((r) => r.assignedSectors.length > 0);
+      const waiting = waitingList.length;
+      const routed = routedList.length;
+      const overallPct = staffRequests.length
+        ? Math.round((routed / staffRequests.length) * 100)
+        : 0;
+
+      const sectorRows = SECTORS.map((sector) => {
+        const assigned = staffRequests.filter((r) =>
+          r.assignedSectors.indexOf(sector) >= 0
+        ).length;
+        const wait = staffRequests.filter(
+          (r) =>
+            !r.assignedSectors.length &&
+            (r.suggestedSectors || []).indexOf(sector) >= 0
+        ).length;
+        const total = assigned + wait;
+        const completion = total ? Math.round((assigned / total) * 100) : 0;
+        return { sector, assigned, wait, total, completion };
+      }).sort((a, b) => b.total - a.total || b.assigned - a.assigned);
+
+      const activeCount = sectorRows.filter((r) => r.total > 0).length;
+
+      document.getElementById("stats").innerHTML = [
+        [waiting, "بانتظار التوجيه", "waiting"],
+        [routed, "تم التوجيه", "routed"],
+        [staffRequests.length, "إجمالي المعروض", "all"],
+        [SECTORS.length, "الجهات المتاحة", "sectors"],
+      ]
+        .map(([v, l, f]) => {
+          const active = listFilter === f;
+          return `<button type="button" class="card stat" style="text-align:start;cursor:pointer;border:1px solid ${active ? "var(--primary)" : "var(--line)"};background:${active ? "var(--soft)" : "#fff"}" onclick="setListFilter('${f}')"><strong>${v}</strong><span>${l}</span></button>`;
+        })
+        .join("");
+
+      const titles = {
+        waiting: "بانتظار التوجيه",
+        routed: "تم التوجيه",
+        all: "كل الطلبات",
+        sectors: "الجهات المتاحة",
+      };
+      document.getElementById("list-title").textContent = titles[listFilter];
+      document.getElementById("list-count").textContent =
+        listFilter === "sectors"
+          ? activeCount + " عليها طلبات · إنجاز " + overallPct + "%"
+          : (listFilter === "waiting"
+              ? waitingList
+              : listFilter === "routed"
+                ? routedList
+                : staffRequests
+            ).length + " سجلات";
+
+      document.getElementById("ops-tabs").innerHTML = [
+        ["waiting", "بانتظار التوجيه", waiting],
+        ["routed", "تم التوجيه", routed],
+        ["all", "الكل", staffRequests.length],
+        ["sectors", "الجهات المتاحة", SECTORS.length],
+      ]
+        .map(
+          ([key, label, count]) =>
+            `<button type="button" onclick="setListFilter('${key}')" style="border:1px solid ${listFilter === key ? "var(--primary)" : "var(--line)"};background:${listFilter === key ? "var(--soft)" : "#fff"};border-radius:999px;padding:8px 14px;font:inherit;cursor:pointer">${label} <b style="color:var(--primary)">${count}</b></button>`
+        )
+        .join("");
+
+      if (listFilter === "sectors") {
+        document.getElementById("request-list").innerHTML = sectorRows
+          .map((row) => {
+            const status =
+              row.total === 0
+                ? "بدون طلبات"
+                : row.wait > 0
+                  ? "يوجد بانتظار"
+                  : "مكتمل التوجيه";
+            const hint = row.wait
+              ? row.wait + " بانتظار التوجيه"
+              : row.assigned
+                ? row.assigned + " تم توجيهها"
+                : "لا طلبات مرتبطة حاليًا";
+            return `
+          <article class="request-row">
+            <div>
+              <strong style="display:inline-block">${row.sector}</strong>
+              <span class="chip">${status}</span>
+              <div style="height:8px;max-width:420px;margin-top:10px;border-radius:999px;background:rgba(10,74,69,.08);overflow:hidden">
+                <span style="display:block;height:100%;width:${row.completion}%;background:var(--primary);border-radius:inherit"></span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:12px;color:var(--muted)">
+                <span>موجّه: ${row.assigned}</span>
+                <span>بانتظار: ${row.wait}</span>
+                <span>الإجمالي: ${row.total}</span>
+                <span>الإنجاز: ${row.completion}%</span>
+              </div>
+            </div>
+            <div class="staff-redirect" style="text-align:center">
+              <div style="font-weight:700;font-size:13px">ملخص الجهة</div>
+              <strong style="display:block;font-size:28px;color:var(--primary)">${row.completion}%</strong>
+              <span style="font-size:12px;color:var(--muted)">${hint}</span>
+            </div>
+          </article>`;
+          })
+          .join("");
+        return;
+      }
+
+      const visible =
+        listFilter === "waiting"
+          ? waitingList
+          : listFilter === "routed"
+            ? routedList
+            : staffRequests;
+
+      if (!visible.length) {
+        document.getElementById("request-list").innerHTML =
+          '<p style="text-align:center;color:var(--muted);padding:18px">لا توجد طلبات في هذا القسم حاليًا.</p>';
+        return;
+      }
+
+      document.getElementById("request-list").innerHTML = visible
+        .map((r) => {
+          const done = r.assignedSectors.length > 0;
+          const choice = done
+            ? r.assignedSectors
+            : draftSectors[r.id] || r.suggestedSectors || [];
+          if (!done && !draftSectors[r.id]) draftSectors[r.id] = choice.slice();
+          const chips = (r.suggestedSectors || [])
+            .map(
+              (s) =>
+                `<span class="chip" style="background:#f7efd9;color:#8a6a2a">${s}</span>`
+            )
+            .join(" ");
+          const assignedChips = (r.assignedSectors || [])
+            .map(
+              (s) =>
+                `<span class="chip" style="background:var(--soft);color:var(--primary-dark)">${s}</span>`
+            )
+            .join(" ");
+          const checks = SECTORS.map((s) => {
+            const checked = choice.indexOf(s) >= 0;
+            const suggested = (r.suggestedSectors || []).indexOf(s) >= 0;
+            const esc = s.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+            return `<label style="display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;${suggested ? "background:#f7efd9;" : ""}">
+            <input type="checkbox" data-id="${r.id}" data-sector="${esc}" ${done ? "disabled" : ""} ${checked ? "checked" : ""}
+              onchange="toggleDraftSector(this.dataset.id, this.dataset.sector)" />
+            <span>${s}${suggested ? " ★" : ""}</span>
+          </label>`;
+          }).join("");
+          return `
           <article class="request-row">
             <div>
               <strong style="direction:ltr;display:inline-block">${r.id}</strong>
@@ -557,30 +826,45 @@
               <p>${r.text}</p>
               <div style="color:var(--muted);font-size:13px;margin-top:8px">
                 ${r.kind === "report" ? "بلاغ" : "طلب خدمة"} · ${r.category} · ${r.priority}<br/>
-                المقترح: <b style="color:var(--primary)">${r.suggestedSector}</b>
+                المقترحات: ${chips}
+                ${done ? `<div style="margin-top:6px;color:var(--primary)">تم التوجيه إلى: <b>${r.assignedSectors.join("، ")}</b></div>` : ""}
               </div>
             </div>
             <div class="staff-redirect">
-              <label><span>إعادة التوجيه إلى</span>
-                <select id="sel-${r.id}" ${done ? "disabled" : ""}>${options}</select>
-              </label>
-              <button class="primary" type="button" ${done ? "disabled" : ""} onclick="redirect('${r.id}')">
-                ${done ? "تم التوجيه" : "تأكيد إعادة التوجيه"}
-              </button>
+              ${
+                done
+                  ? `<div style="font-weight:700;font-size:13px">الجهات المستلمة</div>
+                     <div style="display:flex;flex-wrap:wrap;gap:6px">${assignedChips}</div>
+                     <button class="primary" type="button" disabled>تم التوجيه</button>`
+                  : `<div style="font-weight:700;font-size:13px">اختر جهة أو أكثر للتوجيه</div>
+                     <div style="display:grid;gap:4px;max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff">${checks}</div>
+                     <button class="primary" type="button" ${!choice.length ? "disabled" : ""} onclick="redirect('${r.id}')">
+                       تأكيد إعادة التوجيه (${choice.length})
+                     </button>`
+              }
             </div>
           </article>`;
-      }).join("");
+        })
+        .join("");
     }
 
     function redirect(id) {
-      const sel = document.getElementById("sel-" + id);
-      const sector = sel.value;
+      const sectors = (draftSectors[id] || []).slice();
+      if (!sectors.length) return;
       staffRequests = staffRequests.map((r) =>
-        r.id === id ? { ...r, assignedSector: sector, status: "تم التوجيه إلى " + sector } : r
+        r.id === id
+          ? {
+              ...r,
+              assignedSectors: sectors,
+              status: "تم التوجيه إلى " + sectors.join("، "),
+            }
+          : r
       );
       if (id === requestId) {
-        document.getElementById("track-status").textContent = "تم التوجيه إلى " + sector;
+        document.getElementById("track-status").textContent =
+          "تم التوجيه إلى " + sectors.join("، ");
       }
+      listFilter = "routed";
       renderDashboard();
     }
 
